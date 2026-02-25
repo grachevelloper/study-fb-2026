@@ -21,7 +21,7 @@ export default function UsersPage() {
         try {
             setLoading(true);
             const data = await api.getUsers();
-            setUsers(data);
+            setUsers(data.users || data);
         } catch (err) {
             console.error(err);
             alert("Ошибка загрузки пользователей");
@@ -63,11 +63,11 @@ export default function UsersPage() {
         try {
             if (modalMode === "create") {
                 const newUser = await api.createUser(payload);
-                setUsers((prev) => [...prev, newUser]);
+                setUsers((prev) => [...prev, newUser.user || newUser]);
             } else {
                 const updatedUser = await api.updateUser(payload.id, payload);
                 setUsers((prev) =>
-                    prev.map((u) => (u.id === payload.id ? updatedUser : u))
+                    prev.map((u) => (u.id === payload.id ? (updatedUser.user || updatedUser) : u))
                 );
             }
             closeModal();
@@ -91,7 +91,7 @@ export default function UsersPage() {
                     <div className="toolbar">
                         <h1 className="title">Пользователи</h1>
                         <button className="btn btn--primary" onClick={openCreate}>
-                            + Создать  
+                            + Создать
                         </button>
                     </div>
                     {loading ? (
@@ -108,7 +108,7 @@ export default function UsersPage() {
 
             <footer className="footer">
                 <div className="footer__inner">
-                    © {new Date().getFullYear()}Users App
+                    © {new Date().getFullYear()} Users App
                 </div>
             </footer>
             <UserModal

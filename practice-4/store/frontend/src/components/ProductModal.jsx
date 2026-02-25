@@ -13,7 +13,9 @@ export default function ProductModal({ open, mode, initialProduct, onClose, onSu
         setCategory(initialProduct?.category ?? "");
         setDescription(initialProduct?.description ?? "");
         setPrice(initialProduct?.price != null ? String(initialProduct.price) : "");
-        setQuantity(initialProduct?.quantity != null ? String(initialProduct.quantity) : "");
+        // Используем quantity или stock (для совместимости)
+        const qty = initialProduct?.quantity ?? initialProduct?.stock;
+        setQuantity(qty != null ? String(qty) : "");
     }, [open, initialProduct]);
 
     if (!open) return null;
@@ -26,11 +28,11 @@ export default function ProductModal({ open, mode, initialProduct, onClose, onSu
         const trimmedName = name.trim();
         const trimmedCategory = category.trim();
         const trimmedDescription = description.trim();
-        const parsedPrise = Number(price);
+        const parsedPrice = Number(price);
         const parsedQuantity = Number(quantity);
 
         if (!trimmedName) {
-            alert("Введите имя");
+            alert("Введите название");
             return;
         }
         if (!trimmedCategory) {
@@ -41,12 +43,12 @@ export default function ProductModal({ open, mode, initialProduct, onClose, onSu
             alert("Введите описание");
             return;
         }
-        if (!Number.isFinite(parsedPrise) || parsedPrise < 0) {
+        if (!Number.isFinite(parsedPrice) || parsedPrice < 0) {
             alert("Введите корректную цену");
             return;
         }
         if (!Number.isFinite(parsedQuantity) || parsedQuantity < 0) {
-            alert("Введите корректное колличество");
+            alert("Введите корректное количество");
             return;
         }
 
@@ -55,14 +57,14 @@ export default function ProductModal({ open, mode, initialProduct, onClose, onSu
             name: trimmedName,
             category: trimmedCategory,
             description: trimmedDescription,
-            price: parsedPrise,
-            quantity: parsedQuantity
+            price: parsedPrice,
+            quantity: parsedQuantity // оставляем quantity для фронтенда
         });
     };
 
     return (
         <div className="backdrop" onMouseDown={onClose}>
-            <div className="modal" onMouseDown={(e) => e.stopPropagation()}role="dialog" aria-modal="true">
+            <div className="modal" onMouseDown={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
                 <div className="modal__header">
                     <div className="modal__title">{title}</div>
                     <button className="iconBtn" onClick={onClose} aria-label="Закрыть">
@@ -89,7 +91,6 @@ export default function ProductModal({ open, mode, initialProduct, onClose, onSu
                             value={category}
                             onChange={(e) => setCategory(e.target.value)}
                             placeholder="Например, текстиль"
-                            autoFocus
                         />
                     </label>
 
@@ -100,7 +101,6 @@ export default function ProductModal({ open, mode, initialProduct, onClose, onSu
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             placeholder="Например, материал пух, цвет белый"
-                            autoFocus
                         />
                     </label>
 
@@ -127,7 +127,7 @@ export default function ProductModal({ open, mode, initialProduct, onClose, onSu
                     </label>
 
                     <div className="modal__footer">
-                        <button type="button" className="btn btn--cancel" onClick={onClose}>
+                        <button type="button" className="btn" onClick={onClose}>
                             Отмена  
                         </button>
                         <button type="submit" className="btn btn--primary">

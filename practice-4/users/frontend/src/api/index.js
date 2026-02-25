@@ -1,36 +1,67 @@
-import axios from "axios";
-
-const apiClient = axios.create({
-    baseURL: "http://localhost:3000/api",
-    headers: {
-        "Content-Type": "application/json",
-        "accept": "application/json",
-    }
-});
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
 export const api = {
-    createUser: async (user) => {
-        let response = await apiClient.post("/users", user);
-        return response.data;
+    async getUsers() {
+        const response = await fetch(`${API_BASE_URL}/users`);
+        if (!response.ok) throw new Error('Failed to fetch users');
+        const data = await response.json();
+        return data.data || data.users || data;
     },
 
-    getUsers: async () => {
-        let response = await apiClient.get("/users");
-        return response.data;
+    async getUser(id) {
+        const response = await fetch(`${API_BASE_URL}/users/${id}`);
+        if (!response.ok) throw new Error('Failed to fetch user');
+        const data = await response.json();
+        return data.data || data;
     },
 
-    getUserById: async (id) => {
-        let response = await apiClient.get(`/users/${id}`);
-        return response.data;
+    async createUser(userData) {
+        const response = await fetch(`${API_BASE_URL}/users`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(userData),
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to create user');
+        }
+        const data = await response.json();
+        return data.user || data.data || data;
     },
 
-    updateUser: async (id, user) => {
-        let response = await apiClient.patch(`/users/${id}`, user);
-        return response.data;
+    async updateUser(id, userData) {
+        const response = await fetch(`${API_BASE_URL}/users/${id}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(userData),
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to update user');
+        }
+        const data = await response.json();
+        return data.user || data.data || data;
     },
 
-    deleteUser: async (id) => {
-        let response = await apiClient.delete(`/users/${id}`);
-        return response.data;
+    async deleteUser(id) {
+        const response = await fetch(`${API_BASE_URL}/users/${id}`, {
+            method: 'DELETE',
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to delete user');
+        }
+        return true;
+    },
+
+    async getStats() {
+        const response = await fetch(`${API_BASE_URL}/users/stats/summary`);
+        if (!response.ok) throw new Error('Failed to fetch stats');
+        const data = await response.json();
+        return data.data || data;
     }
-}
+};

@@ -1,36 +1,81 @@
-import axios from "axios";
-
-const apiClient = axios.create({
-    baseURL: "http://localhost:3000/api",
-    headers: {
-        "Content-Type": "application/json",
-        "accept": "application/json",
-    }
-});
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3003/api';
 
 export const api = {
-    createProduct: async (product) => {
-        let response = await apiClient.post("/products", product);
-        return response.data;
+    async getProducts() {
+        const response = await fetch(`${API_BASE_URL}/products`);
+        if (!response.ok) throw new Error('Failed to fetch products');
+        const data = await response.json();
+
+        return data.data || data;
     },
 
-    getProducts: async () => {
-        let response = await apiClient.get("/products");
-        return response.data;
+    async getProduct(id) {
+        const response = await fetch(`${API_BASE_URL}/products/${id}`);
+        if (!response.ok) throw new Error('Failed to fetch product');
+        const data = await response.json();
+        return data.data || data;
     },
 
-    getProductById: async (id) => {
-        let response = await apiClient.get(`/products/${id}`);
-        return response.data;
+    async createProduct(productData) {
+
+        const backendData = {
+            name: productData.name,
+            category: productData.category,
+            description: productData.description,
+            price: productData.price,
+            stock: productData.quantity // quantity -> stock
+        };
+        
+        const response = await fetch(`${API_BASE_URL}/products`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(backendData),
+        });
+        if (!response.ok) throw new Error('Failed to create product');
+        const data = await response.json();
+
+        const result = data.data || data;
+        if (result && result.stock !== undefined) {
+            result.quantity = result.stock;
+        }
+        return result;
     },
 
-    updateProduct: async (id, product) => {
-        let response = await apiClient.patch(`/products/${id}`,product);
-        return response.data;
+    async updateProduct(id, productData) {
+
+        const backendData = { ...productData };
+        if (backendData.quantity !== undefined) {
+            backendData.stock = backendData.quantity;
+            delete backendData.quantity;
+        }
+        
+        const response = await fetch(`${API_BASE_URL}/products/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(backendData),
+        });
+        if (!response.ok) throw new Error('Failed to update product');
+        const data = await response.json();
+
+        const result = data.data || data;
+        if (result && result.stock !== undefined) {
+            result.quantity = result.stock;
+        }
+        return result;
     },
 
-    deleteProduct: async (id) => {
-        let response = await apiClient.delete(`/products/${id}`);
-        return response.data;
+    async deleteProduct(id) {
+        const response = await fetch(`${API_BASE_URL}/products/${id}`, {
+            method: 'DELETE',
+        });
+        if (!response.ok) throw new Error('Failed to delete product');
+        return true;
+    },
+
+    async getCategories() {
+        const response = await fetch(`${API_BASE_URL}/categories`);
+        if (!response.ok) throw new Error('Failed to fetch categories');
+        const data = await response.json();
+        return data.data || data;
     }
-}
+};

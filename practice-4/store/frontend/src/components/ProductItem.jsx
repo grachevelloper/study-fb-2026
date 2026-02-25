@@ -1,6 +1,8 @@
 import React from "react";
 
 export default function ProductItem({ product, onEdit, onDelete }) {
+    const quantity = product.quantity ?? product.stock ?? 0;
+    
     return (
         <div className="productRow">
             <div className="productMain">
@@ -8,15 +10,15 @@ export default function ProductItem({ product, onEdit, onDelete }) {
                 <div className="productName">{product.name}</div>
                 <div className="productCategory">{product.category}</div>
                 <div className="productDescription">{product.description}</div>
-                <div className="productPrice">{product.price} рублей</div>
-                <div className="productQuantity">{product.quantity} штук</div>
+                <div className="productPrice">{product.price} ₽</div>
+                <div className="productQuantity">{quantity} шт</div>
             </div>
 
             <div className="productActions">
-                <button className="btn btn--edit" onClick={() => onEdit(product)}>
+                <button className="btn" onClick={() => onEdit(product)}>
                     Редактировать  
                 </button>
-                <button className="btn btn--danger" onClick={() =>onDelete(product.id)}>
+                <button className="btn btn--danger" onClick={() => onDelete(product.id)}>
                     Удалить  
                 </button>
             </div>

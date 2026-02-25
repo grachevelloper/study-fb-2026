@@ -1,4 +1,15 @@
 {
+  "name": "users-backend",
+  "version": "1.0.0",
+  "description": "Users API backend",
+  "main": "app.ts",
+  "scripts": {
+    "start": "node dist/app.js",
+    "dev": "ts-node app.ts",
+    "build": "tsc",
+    "watch": "ts-node-dev --respawn app.ts",
+    "clean": "rm -rf dist"
+  },
   "dependencies": {
     "cors": "^2.8.6",
     "express": "^5.2.1",
@@ -8,6 +19,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
     "typescript": "^5.9.3"
   }
 }
