@@ -1,4 +1,8 @@
-# macOS
+node_modules/
+.env
+.env.local
+.env.production
+*.log
+npm-debug.log*
 .DS_Store
-**/.DS_Store
-node_modules
+Thumbs.db
