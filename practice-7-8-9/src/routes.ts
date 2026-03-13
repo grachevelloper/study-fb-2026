@@ -2,12 +2,15 @@ import express, { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { nanoid } from 'nanoid';
-import { users } from './data/users.js';
-import { products } from './data/products.js';
-import { authMiddleware, AuthRequest } from './middlewares/index.js';
-import { JWT_SECRET, ACCESS_TOKEN_EXPIRES_IN, BCRYPT_SALT_ROUNDS } from './configs/index.js';
-import { type User } from './types/index.js';
-import { findProductById, deleteProductById, findUserByEmail } from './utils.js';
+import { users } from './data/users';
+import { products } from './data/products';
+import { authMiddleware, AuthRequest } from './middlewares';
+import {
+    REFRESH_SECRET,
+    BCRYPT_SALT_ROUNDS
+} from './configs';
+import { User, LoginResponse, RefreshResponse, RefreshTokenPayload } from './types';
+import { findProductById, deleteProductById, findUserByEmail, addRefreshToken, generateAccessToken, generateRefreshToken, isRefreshTokenValid, removeRefreshToken } from './utils';
 
 const router = express.Router();
 
@@ -18,6 +21,7 @@ async function hashPassword(password: string): Promise<string> {
 async function verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
     return await bcrypt.compare(password, hashedPassword);
 }
+
 
 /**
  * @swagger
@@ -38,14 +42,6 @@ async function verifyPassword(password: string, hashedPassword: string): Promise
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/User'
- *       400:
- *         description: Ошибка валидации или пользователь уже существует
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       500:
- *         description: Внутренняя ошибка сервера
  */
 router.post('/api/auth/register', async (req: Request, res: Response) => {
     try {
@@ -100,17 +96,16 @@ router.post('/api/auth/register', async (req: Request, res: Response) => {
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/LoginResponse'
- *       400:
- *         description: Отсутствуют email или пароль
- *       401:
- *         description: Неверный пароль
- *       404:
- *         description: Пользователь не найден
- *       500:
- *         description: Внутренняя ошибка сервера
+ *               type: object
+ *               properties:
+ *                 accessToken:
+ *                   type: string
+ *                 refreshToken:
+ *                   type: string
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
  */
-router.post('/api/auth/login', async (req: Request, res: Response) => {
+router.post('/api/auth/login', async (req: Request, res: Response<LoginResponse | { error: string }>) => {
     try {
         const { email, password } = req.body;
 
@@ -131,22 +126,14 @@ router.post('/api/auth/login', async (req: Request, res: Response) => {
             return;
         }
 
-        const accessToken = jwt.sign(
-            {
-                sub: user.id,
-                email: user.email,
-                first_name: user.first_name,
-                last_name: user.last_name
-            },
-            JWT_SECRET,
-            {
-                expiresIn: ACCESS_TOKEN_EXPIRES_IN as jwt.SignOptions['expiresIn']
-            }
-        );
+        const accessToken = generateAccessToken(user);
+        const refreshToken = generateRefreshToken(user);
+
+        addRefreshToken(refreshToken, user.id);
 
         res.json({
-            message: 'Login successful',
             accessToken,
+            refreshToken,
             user: {
                 id: user.id,
                 email: user.email,
@@ -158,6 +145,141 @@ router.post('/api/auth/login', async (req: Request, res: Response) => {
     } catch (error) {
         console.error('Login error:', error);
         res.status(500).json({ error: 'Server error during login' });
+    }
+});
+
+/**
+ * @swagger
+ * /api/auth/refresh:
+ *   post:
+ *     summary: Обновление пары токенов
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *                 description: Действительный refresh токен
+ *     responses:
+ *       200:
+ *         description: Новая пара токенов
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 accessToken:
+ *                   type: string
+ *                 refreshToken:
+ *                   type: string
+ *       400:
+ *         description: Отсутствует refresh токен
+ *       401:
+ *         description: Недействительный или истекший refresh токен
+ */
+router.post('/api/auth/refresh', async (req: Request, res: Response<RefreshResponse | { error: string }>) => {
+    try {
+        const { refreshToken } = req.body;
+
+        if (!refreshToken) {
+            res.status(400).json({ error: 'refreshToken is required' });
+            return;
+        }
+
+        if (!isRefreshTokenValid(refreshToken)) {
+            res.status(401).json({ error: 'Invalid refresh token' });
+            return;
+        }
+
+        try {
+            const payload = jwt.verify(refreshToken, REFRESH_SECRET) as RefreshTokenPayload;
+
+            const user = findUserByEmail(payload.email);
+            if (!user) {
+                res.status(401).json({ error: 'User not found' });
+                return;
+            }
+
+            removeRefreshToken(refreshToken, user.id);
+
+            const newAccessToken = generateAccessToken(user);
+            const newRefreshToken = generateRefreshToken(user);
+
+            addRefreshToken(newRefreshToken, user.id);
+
+            res.json({
+                accessToken: newAccessToken,
+                refreshToken: newRefreshToken
+            });
+
+        } catch (err) {
+            removeRefreshToken(refreshToken);
+
+            if (err instanceof jwt.TokenExpiredError) {
+                res.status(401).json({ error: 'Refresh token expired' });
+                return;
+            }
+            if (err instanceof jwt.JsonWebTokenError) {
+                res.status(401).json({ error: 'Invalid refresh token' });
+                return;
+            }
+            res.status(401).json({ error: 'Token validation failed' });
+        }
+
+    } catch (error) {
+        console.error('Refresh error:', error);
+        res.status(500).json({ error: 'Server error during token refresh' });
+    }
+});
+
+/**
+ * @swagger
+ * /api/auth/logout:
+ *   post:
+ *     summary: Выход из системы (инвалидация refresh токена)
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Успешный выход
+ *       400:
+ *         description: Отсутствует refresh токен
+ */
+router.post('/api/auth/logout', authMiddleware, (req: AuthRequest, res: Response) => {
+    try {
+        const { refreshToken } = req.body;
+
+        if (!refreshToken) {
+            res.status(400).json({ error: 'refreshToken is required' });
+            return;
+        }
+
+        // Удаляем refresh токен из хранилища
+        removeRefreshToken(refreshToken, req.user?.sub);
+
+        res.json({ message: 'Logged out successfully' });
+
+    } catch (error) {
+        console.error('Logout error:', error);
+        res.status(500).json({ error: 'Server error during logout' });
     }
 });
 
@@ -176,12 +298,6 @@ router.post('/api/auth/login', async (req: Request, res: Response) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/User'
- *       401:
- *         description: Не авторизован или неверный токен
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
  */
 router.get('/api/auth/me', authMiddleware, (req: AuthRequest, res: Response) => {
     if (!req.user) {
@@ -196,6 +312,8 @@ router.get('/api/auth/me', authMiddleware, (req: AuthRequest, res: Response) => 
         last_name: req.user.last_name
     });
 });
+
+// ... (остальные маршруты для продуктов без изменений) ...
 
 /**
  * @swagger
@@ -216,14 +334,6 @@ router.get('/api/auth/me', authMiddleware, (req: AuthRequest, res: Response) => 
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Product'
- *       400:
- *         description: Ошибка валидации
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       500:
- *         description: Внутренняя ошибка сервера
  */
 router.post('/api/products', (req: Request, res: Response) => {
     try {
@@ -292,7 +402,6 @@ router.get('/api/products', (req: Request, res: Response) => {
  *         required: true
  *         schema:
  *           type: string
- *         description: ID товара
  *     responses:
  *       200:
  *         description: Информация о товаре
@@ -300,18 +409,6 @@ router.get('/api/products', (req: Request, res: Response) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Product'
- *       401:
- *         description: Не авторизован
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       404:
- *         description: Товар не найден
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
  */
 router.get('/api/products/:id', authMiddleware, (req: AuthRequest, res: Response) => {
     const product = findProductById(typeof req.params.id === 'object' ? req.params.id[0] : req.params.id);
@@ -338,7 +435,6 @@ router.get('/api/products/:id', authMiddleware, (req: AuthRequest, res: Response
  *         required: true
  *         schema:
  *           type: string
- *         description: ID товара
  *     requestBody:
  *       required: true
  *       content:
@@ -352,14 +448,6 @@ router.get('/api/products/:id', authMiddleware, (req: AuthRequest, res: Response
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Product'
- *       400:
- *         description: Ошибка валидации
- *       401:
- *         description: Не авторизован
- *       404:
- *         description: Товар не найден
- *       500:
- *         description: Внутренняя ошибка сервера
  */
 router.put('/api/products/:id', authMiddleware, (req: AuthRequest, res: Response) => {
     try {
@@ -405,18 +493,9 @@ router.put('/api/products/:id', authMiddleware, (req: AuthRequest, res: Response
  *         required: true
  *         schema:
  *           type: string
- *         description: ID товара
  *     responses:
  *       200:
  *         description: Товар успешно удален
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Product deleted successfully
  *       401:
  *         description: Не авторизован
  *       404:

@@ -22,9 +22,14 @@ export interface UserWithoutPassword {
 }
 
 export interface LoginResponse {
-    message: string;
     accessToken: string;
+    refreshToken: string;
     user: UserWithoutPassword;
+}
+
+export interface RefreshResponse {
+    accessToken: string;
+    refreshToken: string;
 }
 
 export interface JwtPayload {
@@ -34,4 +39,14 @@ export interface JwtPayload {
     last_name: string;
     iat?: number;
     exp?: number;
+}
+
+export interface RefreshTokenPayload {
+    sub: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    iat?: number;
+    exp?: number;
+    tokenId?: string;
 }
