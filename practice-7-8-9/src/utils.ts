@@ -21,8 +21,14 @@ export function findProductById(id: string) {
 
 export function deleteProductById(id: string) {
     const initialLength = products.length;
-    const filtredProducts = products.filter(product => product.id !== id);
-    return filtredProducts.length !== initialLength;
+
+    const index = products.findIndex(product => product.id === id);
+
+    if (index !== -1) {
+        products.splice(index, 1);
+    }
+
+    return products.length !== initialLength;
 }
 
 
