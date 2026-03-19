@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import ProductCard from '../components/ProductCard';
 import { getProducts, deleteProduct } from '../services/productService';
 import { type Product } from '../types';
@@ -8,6 +9,7 @@ const Products: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { isAdmin, isSeller } = useAuth();
 
   const loadProducts = async () => {
     try {
@@ -25,19 +27,20 @@ const Products: React.FC = () => {
   }, []);
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      try {
-        await deleteProduct(id);
-        setProducts(products.filter((p) => p.id !== id));
-      } catch (err: any) {
-        alert(err.response?.data?.error || 'Failed to delete product');
-      }
+    if (!window.confirm('Are you sure you want to delete this product?'))
+      return;
+
+    try {
+      await deleteProduct(id);
+      setProducts(products.filter((p) => p.id !== id));
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Failed to delete product');
     }
   };
 
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', marginTop: '2rem' }}>Loading...</div>
+      <div style={{ textAlign: 'center', marginTop: '2rem' }}>Загрузка...</div>
     );
   }
 
@@ -70,20 +73,22 @@ const Products: React.FC = () => {
           marginBottom: '2rem',
         }}>
         <h1>Продукты</h1>
-        <Link to='/create-product'>
-          <button
-            style={{
-              padding: '0.75rem 1.5rem',
-              backgroundColor: '#28a745',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '1rem',
-            }}>
-            Создать новый продукт
-          </button>
-        </Link>
+        {(isSeller || isAdmin) && (
+          <Link to='/create-product'>
+            <button
+              style={{
+                padding: '0.75rem 1.5rem',
+                backgroundColor: '#28a745',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '1rem',
+              }}>
+              Создайте новый продукт
+            </button>
+          </Link>
+        )}
       </div>
 
       {products.length === 0 ? (
@@ -102,6 +107,8 @@ const Products: React.FC = () => {
               key={product.id}
               product={product}
               onDelete={handleDelete}
+              canEdit={isSeller || isAdmin}
+              canDelete={isAdmin}
             />
           ))}
         </div>

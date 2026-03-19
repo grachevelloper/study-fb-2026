@@ -1,8 +1,12 @@
+export type UserRole = 'user' | 'seller' | 'admin';
+
 export interface User {
     id: string;
     email: string;
     first_name: string;
     last_name: string;
+    role: UserRole;
+    isActive: boolean;
 }
 
 export interface UserInput {
@@ -10,6 +14,7 @@ export interface UserInput {
     first_name: string;
     last_name: string;
     password: string;
+    role?: UserRole;
 }
 
 export interface LoginInput {
@@ -34,6 +39,7 @@ export interface Product {
     category: string;
     description: string;
     price: number;
+    createdBy?: string;
 }
 
 export interface ProductInput {

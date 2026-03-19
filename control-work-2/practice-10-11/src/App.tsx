@@ -1,13 +1,16 @@
+import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import Navigation from './components/Navigation';
 import PrivateRoute from './components/PrivateRoute';
+import AdminRoute from './components/AdminRoute';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Products from './pages/Products';
 import CreateProduct from './pages/CreateProduct';
 import EditProduct from './pages/EditProduct';
 import ProductDetail from './pages/ProductDetail';
+import Users from './pages/Users';
 
 function App() {
   return (
@@ -42,7 +45,7 @@ function App() {
               <Route
                 path='/create-product'
                 element={
-                  <PrivateRoute>
+                  <PrivateRoute requireSeller>
                     <CreateProduct />
                   </PrivateRoute>
                 }
@@ -51,9 +54,18 @@ function App() {
               <Route
                 path='/edit-product/:id'
                 element={
-                  <PrivateRoute>
+                  <PrivateRoute requireSeller>
                     <EditProduct />
                   </PrivateRoute>
+                }
+              />
+
+              <Route
+                path='/users'
+                element={
+                  <AdminRoute>
+                    <Users />
+                  </AdminRoute>
                 }
               />
             </Routes>

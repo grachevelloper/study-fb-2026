@@ -21,6 +21,9 @@ interface AuthContextType {
   register: (userData: UserInput) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
+  userRole: User['role'] | null;
+  isAdmin: boolean;
+  isSeller: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -71,6 +74,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const register = async (userData: UserInput) => {
     await apiRegister(userData);
+
     await login({ email: userData.email, password: userData.password });
   };
 
@@ -89,6 +93,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     register,
     logout,
     isAuthenticated: !!user,
+    userRole: user?.role || null,
+    isAdmin: user?.role === 'admin',
+    isSeller: user?.role === 'seller' || user?.role === 'admin',
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const Navigation: React.FC = () => {
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -29,24 +29,51 @@ const Navigation: React.FC = () => {
         }}>
         <div style={{ display: 'flex', gap: '1rem' }}>
           <Link to='/' style={{ textDecoration: 'none', color: '#007bff' }}>
-            Главная
+            Домашняя
           </Link>
           <Link
             to='/products'
             style={{ textDecoration: 'none', color: '#007bff' }}>
             Продукты
           </Link>
+          {isAdmin && (
+            <Link
+              to='/users'
+              style={{ textDecoration: 'none', color: '#007bff' }}>
+              Пользователи
+            </Link>
+          )}
         </div>
 
         <div>
           {isAuthenticated ? (
             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-              <span>Добрый день, {user?.first_name}!</span>
-              <Link
-                to='/create-product'
-                style={{ textDecoration: 'none', color: '#28a745' }}>
-                Создать продукт
-              </Link>
+              <span>
+                Добрый день, {user?.first_name}!
+                <span
+                  style={{
+                    marginLeft: '0.5rem',
+                    padding: '0.25rem 0.5rem',
+                    backgroundColor:
+                      user?.role === 'admin'
+                        ? '#dc3545'
+                        : user?.role === 'seller'
+                          ? '#ffc107'
+                          : '#007bff',
+                    color: user?.role === 'seller' ? '#000' : '#fff',
+                    borderRadius: '4px',
+                    fontSize: '0.75rem',
+                  }}>
+                  {user?.role}
+                </span>
+              </span>
+              {user?.role === 'seller' || user?.role === 'admin' ? (
+                <Link
+                  to='/create-product'
+                  style={{ textDecoration: 'none', color: '#28a745' }}>
+                  Создайте новый продукт
+                </Link>
+              ) : null}
               <button
                 onClick={handleLogout}
                 style={{
@@ -57,7 +84,7 @@ const Navigation: React.FC = () => {
                   borderRadius: '4px',
                   cursor: 'pointer',
                 }}>
-                Выход
+                Вйыти
               </button>
             </div>
           ) : (
@@ -65,12 +92,12 @@ const Navigation: React.FC = () => {
               <Link
                 to='/login'
                 style={{ textDecoration: 'none', color: '#007bff' }}>
-                Вход
+                Войти
               </Link>
               <Link
                 to='/register'
                 style={{ textDecoration: 'none', color: '#007bff' }}>
-                Регистрация
+                Зарегестрироваться
               </Link>
             </div>
           )}

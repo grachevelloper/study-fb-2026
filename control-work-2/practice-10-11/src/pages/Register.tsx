@@ -1,6 +1,7 @@
-import React, { useEffect, useState, type FormEvent } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { type UserRole } from '../types';
 
 const Register: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -9,6 +10,7 @@ const Register: React.FC = () => {
     last_name: '',
     password: '',
     confirmPassword: '',
+    role: 'user' as UserRole,
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -16,19 +18,21 @@ const Register: React.FC = () => {
   const { register } = useAuth();
   const navigate = useNavigate();
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     });
   };
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+      setError('Пароли не совпадают');
       return;
     }
 
@@ -40,10 +44,11 @@ const Register: React.FC = () => {
         first_name: formData.first_name,
         last_name: formData.last_name,
         password: formData.password,
+        role: formData.role,
       });
       navigate('/products');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to register');
+      setError(err.response?.data?.error || 'Ошибка при регистрации');
     } finally {
       setLoading(false);
     }
@@ -85,7 +90,7 @@ const Register: React.FC = () => {
               marginBottom: '0.5rem',
               fontWeight: 'bold',
             }}>
-            Эл. почта:
+            Email:
           </label>
           <input
             type='email'
@@ -157,6 +162,35 @@ const Register: React.FC = () => {
               marginBottom: '0.5rem',
               fontWeight: 'bold',
             }}>
+            Роль:
+          </label>
+          <select
+            name='role'
+            value={formData.role}
+            onChange={handleChange}
+            style={{
+              width: '100%',
+              padding: '0.5rem',
+              border: '1px solid #ddd',
+              borderRadius: '4px',
+            }}>
+            <option value='user'>Пользователь</option>
+            <option value='seller'>Продавец</option>
+            <option value='admin'>Администратор</option>
+          </select>
+          <small
+            style={{ color: '#666', display: 'block', marginTop: '0.25rem' }}>
+            Примечание: в реальном проекте выбор роли был бы ограничен
+          </small>
+        </div>
+
+        <div style={{ marginBottom: '1rem' }}>
+          <label
+            style={{
+              display: 'block',
+              marginBottom: '0.5rem',
+              fontWeight: 'bold',
+            }}>
             Пароль:
           </label>
           <input
@@ -182,7 +216,7 @@ const Register: React.FC = () => {
               marginBottom: '0.5rem',
               fontWeight: 'bold',
             }}>
-            Подвердите пароль:
+            Подтвердите пароль:
           </label>
           <input
             type='password'
@@ -213,7 +247,7 @@ const Register: React.FC = () => {
             cursor: loading ? 'not-allowed' : 'pointer',
             opacity: loading ? 0.7 : 1,
           }}>
-          {loading ? 'Загрузка...' : 'Зарегистрироваться'}
+          {loading ? 'Регистрация...' : 'Зарегистрироваться'}
         </button>
       </form>
 

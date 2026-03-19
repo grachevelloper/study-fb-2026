@@ -5,9 +5,16 @@ import { type Product } from '../types';
 interface ProductCardProps {
   product: Product;
   onDelete: (id: string) => void;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, onDelete }) => {
+const ProductCard: React.FC<ProductCardProps> = ({
+  product,
+  onDelete,
+  canEdit = false,
+  canDelete = false,
+}) => {
   return (
     <div
       style={{
@@ -41,31 +48,37 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onDelete }) => {
             Посмотреть
           </button>
         </Link>
-        <Link to={`/edit-product/${product.id}`}>
+
+        {canEdit && (
+          <Link to={`/edit-product/${product.id}`}>
+            <button
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: '#28a745',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+              }}>
+              Изменить
+            </button>
+          </Link>
+        )}
+
+        {canDelete && (
           <button
+            onClick={() => onDelete(product.id)}
             style={{
               padding: '0.5rem 1rem',
-              backgroundColor: '#28a745',
+              backgroundColor: '#dc3545',
               color: 'white',
               border: 'none',
               borderRadius: '4px',
               cursor: 'pointer',
             }}>
-            Изменить
+            Удалить
           </button>
-        </Link>
-        <button
-          onClick={() => onDelete(product.id)}
-          style={{
-            padding: '0.5rem 1rem',
-            backgroundColor: '#dc3545',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-          }}>
-          Удалить
-        </button>
+        )}
       </div>
     </div>
   );
