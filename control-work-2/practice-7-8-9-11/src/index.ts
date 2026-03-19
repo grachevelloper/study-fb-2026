@@ -1,9 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
-import swaggerUi from 'swagger-ui-express';
 import cors from 'cors';
 import routes from './routes';
 import { PORT } from './configs';
-import { swaggerSpec } from './swagger';
 
 const app = express();
 
@@ -15,18 +13,6 @@ app.use(cors({
 }));
 
 app.use(express.json());
-
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-    explorer: true,
-    customCss: '.swagger-ui .topbar { display: none }',
-    customSiteTitle: 'Auth Products API Documentation'
-}));
-
-app.get('/api-docs.json', (req: Request, res: Response) => {
-    res.setHeader('Content-Type', 'application/json');
-    res.send(swaggerSpec);
-});
-
 app.use('/', routes);
 
 app.use((req: Request, res: Response) => {
@@ -39,6 +25,5 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`\n Server running on http://localhost:${PORT}`);
-    console.log(`Swagger UI available on http://localhost:${PORT}/api-docs`);
+    console.log(`\n🚀 Server running on http://localhost:${PORT}`);
 });
