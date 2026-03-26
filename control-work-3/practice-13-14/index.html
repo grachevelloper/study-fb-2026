@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="manifest" href="./manifest.json" />
+    <meta name="theme-color" content="#0b1220" />
+    <meta name="apple-mobile-web-app-title" content="TODO PWA" />
+    <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+    <title>TODO-менеджер — Практики 13–14</title>
+  </head>
+  <body>
+    <div class="page">
+      <header class="site-header">
+        <section class="hero">
+          <div class="hero__image-wrapper"></div>
+
+          <div class="hero__content">
+            <p class="hero__eyebrow">ПРАКТИКИ 13–14</p>
+            <h1 class="hero__title">Учебный TODO-менеджер</h1>
+            <p class="hero__text">
+              Service Worker, Web App Manifest, offline-first и локальное хранилище браузера.
+            </p>
+
+            <div class="hero__controls">
+              <span id="networkStatus" class="badge badge--success">Онлайн</span>
+              <button id="installBtn" class="button button--primary button--small" type="button" hidden>
+                Установить PWA
+              </button>
+            </div>
+
+            <p id="installHint" class="hero__hint">
+              Chrome / Edge: кнопка браузера или «Установить PWA». Safari: File → Add to Dock.
+            </p>
+          </div>
+        </section>
+      </header>
+
+      <main class="container">
+        <section class="card">
+          <h2 class="card__title">Добавь задачу</h2>
+          <form id="taskForm" class="task-form">
+            <label class="visually-hidden" for="taskInput">Текст задачи</label>
+            <input
+              id="taskInput"
+              class="input"
+              name="task"
+              type="text"
+              maxlength="120"
+              placeholder="Например: Просто сделай это!"
+              autocomplete="off"
+              required
+            />
+            <button class="button button--primary" type="submit">Добавить</button>
+          </form>
+        </section>
+
+        <section class="card">
+          <div class="card__header">
+            <h2 class="card__title">Задачи</h2>
+            <button id="clearCompletedBtn" class="button button--secondary" type="button">
+              Удалить выполненные
+            </button>
+          </div>
+
+          <div class="filter-bar" role="group" aria-label="Фильтр задач">
+            <button class="filter-btn filter-btn--active" data-filter="all" type="button">Все</button>
+            <button class="filter-btn" data-filter="active" type="button">Активные</button>
+            <button class="filter-btn" data-filter="completed" type="button">Выполненные</button>
+          </div>
+
+          <div id="taskStats" class="stats">Всего: 0 | Активных: 0 | Выполненных: 0</div>
+
+          <ul id="taskList" class="task-list"></ul>
+        </section>
+      </main>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
