@@ -7,3 +7,6 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 .claude
+
+**/localhost+2.pem
+**/localhost+2-key.pem

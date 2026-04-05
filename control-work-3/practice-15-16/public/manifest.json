@@ -1,0 +1,16 @@
+{
+  "name": "TODO-менеджер — Практики 15–16",
+  "short_name": "TODO PWA",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "/assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

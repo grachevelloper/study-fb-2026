@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#2563eb" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="apple-touch-icon" href="/assets/icon.svg" />
+    <link rel="icon" href="/assets/icon.svg" type="image/svg+xml" />
+    <title>TODO-менеджер — Практики 15–16</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="site-header">
+        <div class="header-inner">
+          <div class="header-brand">
+            <span class="header-eyebrow">ПРАКТИКИ 15–16</span>
+            <h1 class="header-title">TODO-менеджер</h1>
+            <p class="header-sub">HTTPS · App Shell · WebSocket · Push</p>
+          </div>
+          <div class="header-meta">
+            <span id="networkStatus" class="badge badge--success">Онлайн</span>
+            <button id="installBtn" class="button button--primary button--small" type="button" hidden>
+              Установить PWA
+            </button>
+          </div>
+        </div>
+        <nav class="tab-nav">
+          <button id="home-btn" class="tab-btn active" type="button">Главная</button>
+          <button id="about-btn" class="tab-btn" type="button">О приложении</button>
+        </nav>
+      </header>
+
+      <main id="app-content" class="container"></main>
+
+      <footer class="site-footer">
+        <button id="enable-push" class="button button--success" type="button">
+          Включить уведомления
+        </button>
+        <button id="disable-push" class="button button--secondary" type="button" style="display: none">
+          Отключить уведомления
+        </button>
+      </footer>
+    </div>
+
+    <!-- Единый бандл (esbuild собирает из src/client/main.ts) -->
+    <script src="/app.js"></script>
+  </body>
+</html>
