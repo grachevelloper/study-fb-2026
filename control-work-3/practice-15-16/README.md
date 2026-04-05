@@ -1,97 +1,94 @@
 # Практики 15–16: HTTPS + App Shell + WebSocket + Push
 
-TypeScript-реализация PWA-приложения с:
-- **Практика 15**: HTTPS через mkcert, архитектура App Shell
-- **Практика 16**: WebSocket (Socket.IO) + Push-уведомления
+Продолжение практик 13–14. Добавляет сервер, HTTPS, архитектуру App Shell, WebSocket и Push-уведомления.
+
+## Отличия от практик 13–14
+
+| | 13–14 | 15–16 |
+|---|---|---|
+| Сервер | Нет (статика) | Express + Node.js |
+| Протокол | HTTP | HTTPS (mkcert) |
+| Загрузка контента | Всё в `index.html` | App Shell — контент через `fetch` |
+| Реальное время | Нет | WebSocket (Socket.IO) |
+| Уведомления | Нет | Push (web-push + VAPID) |
+| Язык | Vanilla JS | TypeScript |
 
 ## Структура проекта
 
 ```
-practice-15-16/
-├── src/
-│   ├── server.ts            # Сервер: Express + Socket.IO + web-push
-│   └── client/
-│       ├── app.ts           # Клиент (компилируется в public/app.js)
-│       └── sw.ts            # Service Worker (компилируется в public/sw.js)
-├── public/
-│   ├── content/
-│   │   ├── home.html        # Динамический контент главной страницы
-│   │   └── about.html       # Страница "О приложении"
-│   ├── assets/
-│   │   └── icon.svg
-│   ├── index.html           # App Shell (каркас)
-│   ├── styles.css
-│   └── manifest.json
-├── tsconfig.json            # Конфиг TypeScript для сервера
-├── tsconfig.client.json     # Конфиг TypeScript для клиента
-├── tsconfig.sw.json         # Конфиг TypeScript для Service Worker
-└── package.json
+src/
+  server.ts              # Express + Socket.IO + web-push
+  client/
+    types.ts             # Интерфейсы Task, TaskPayload, ...
+    constants.ts         # STORAGE_KEY, SERVER_URL
+    storage.ts           # localStorage (loadTasks, saveTasks, ...)
+    socket.ts            # Socket.IO клиент (initSocket, emitNewTask)
+    push.ts              # Push API (subscribe, unsubscribe, VAPID)
+    notes.ts             # Логика заметок (initNotes)
+    shell.ts             # App Shell навигация (loadContent)
+    pwa.ts               # SW регистрация + install prompt + push-кнопки
+    main.ts              # Точка входа
+    sw.ts                # Service Worker (Cache First + Network First + Push)
+public/
+  app.js                 # Клиентский бандл (esbuild из main.ts)
+  sw.js                  # Service Worker (esbuild из sw.ts)
+  index.html             # App Shell каркас
+  styles.css
+  manifest.json
+  assets/icon.svg
+  content/
+    home.html            # Форма + список задач (динамический контент)
+    about.html           # О приложении (динамический контент)
 ```
 
-## Быстрый старт
-
-### 1. Установка зависимостей
+## Запуск
 
 ```bash
 npm install
+npm run build
+npm start
+# → http://localhost:3001
 ```
 
-### 2. Генерация VAPID-ключей
-
-```bash
-npm run generate-vapid
-```
-
-Скопируйте полученные Public Key и Private Key в `src/server.ts`:
-
-```typescript
-const VAPID_PUBLIC_KEY = 'ВАШ_ПУБЛИЧНЫЙ_КЛЮЧ';
-const VAPID_PRIVATE_KEY = 'ВАШ_ПРИВАТНЫЙ_КЛЮЧ';
-```
-
-### 3. Настройка HTTPS (Практика 15)
+### HTTPS (Практика 15)
 
 ```bash
 # macOS
 brew install mkcert
-# Windows (через Chocolatey)
-choco install mkcert
+# Windows: choco install mkcert
 
 mkcert -install
 mkcert localhost 127.0.0.1 ::1
 ```
 
-Скопируйте `localhost.pem` и `localhost-key.pem` в корень проекта (рядом с `package.json`).
+Скопировать `localhost.pem` и `localhost-key.pem` в корень проекта. При следующем `npm start` сервер автоматически запустится по `https://localhost:3001`.
 
-### 4. Сборка TypeScript
-
-```bash
-npm run build
-```
-
-Это создаст:
-- `dist/server.js` — скомпилированный сервер
-- `public/app.js` — скомпилированный клиент
-- `public/sw.js` — скомпилированный Service Worker
-
-### 5. Запуск
+### VAPID-ключи (Практика 16)
 
 ```bash
-# Продакшн (после сборки)
-npm start
-
-# Разработка (без сборки, через ts-node)
-npm run dev
+npm run generate-vapid
 ```
 
-Откройте браузер: `https://localhost:3001` (или `http://localhost:3001` без HTTPS).
+Заменить ключи в `src/server.ts` (строки с `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`), пересобрать:
 
-## Проверка работы
+```bash
+npm run build:server && npm start
+```
 
-1. Откройте две вкладки браузера на `https://localhost:3001`
-2. В одной вкладке нажмите «Включить уведомления»
-3. В другой добавьте задачу — в первой вкладке появится всплывающее сообщение (WebSocket)
-4. Если вкладка свёрнута или закрыта — придёт системное Push-уведомление
-5. DevTools → Application → Service Workers — SW должен быть активен
-6. DevTools → Application → Cache Storage — увидите два кэша: статический и динамический
-7. Отключите сеть — приложение работает из кэша
+## Сборка и проверка типов
+
+```bash
+npm run build        # полная сборка (server + client + sw)
+npm run typecheck    # только проверка типов без компиляции
+npm run dev          # сервер через ts-node (без пересборки клиента)
+```
+
+## Как проверить работу
+
+1. `npm run build && npm start`
+2. Открыть две вкладки на `http://localhost:3001`
+3. В одной вкладке нажать «Включить уведомления»
+4. В другой добавить задачу → в первой появится всплывашка (WebSocket)
+5. Свернуть браузер, добавить задачу → придёт системное уведомление (Push)
+6. DevTools → Application → Cache Storage → два кэша: `notes-cache-v3` и `dynamic-content-v1`
+7. Отключить сеть → приложение работает из кэша
