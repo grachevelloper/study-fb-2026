@@ -2,7 +2,7 @@
 
 const sw = self as unknown as ServiceWorkerGlobalScope;
 
-const CACHE_NAME = 'notes-cache-v3';
+const CACHE_NAME = 'notes-cache-v4';
 const DYNAMIC_CACHE_NAME = 'dynamic-content-v1';
 
 const ASSETS: string[] = [
@@ -49,7 +49,8 @@ sw.addEventListener('fetch', (event) => {
     url.pathname.startsWith('/socket.io/') ||
     url.pathname.startsWith('/subscribe') ||
     url.pathname.startsWith('/unsubscribe') ||
-    url.pathname.startsWith('/vapid-public-key')
+    url.pathname.startsWith('/vapid-public-key') ||
+    url.pathname.startsWith('/snooze')
   ) {
     return;
   }
@@ -89,14 +90,49 @@ sw.addEventListener('fetch', (event) => {
 });
 
 sw.addEventListener('push', (event) => {
-  let data: { title: string; body: string } = { title: 'Новое уведомление', body: '' };
+  let data: { title: string; body: string; reminderId?: string | null } = {
+    title: 'Новое уведомление',
+    body: '',
+    reminderId: null,
+  };
   if (event.data) {
-    data = event.data.json() as { title: string; body: string };
+    data = event.data.json() as typeof data;
   }
-  const options: NotificationOptions = {
+  const options: NotificationOptions & { actions?: { action: string; title: string }[] } = {
     body: data.body,
     icon: '/assets/icon.svg',
     badge: '/assets/icon.svg',
+    data: { reminderId: data.reminderId ?? null },
   };
+
+  if (data.reminderId) {
+    options.actions = [{ action: 'snooze', title: 'Отложить на 5 минут' }];
+  }
+
   event.waitUntil(sw.registration.showNotification(data.title, options));
+});
+
+sw.addEventListener('notificationclick', (event) => {
+  const notification = event.notification;
+  const action = event.action;
+
+  if (action === 'snooze') {
+    const reminderId = (notification.data as { reminderId: string }).reminderId;
+    event.waitUntil(
+      fetch(`/snooze?reminderId=${reminderId}`, { method: 'POST' })
+        .then(() => notification.close())
+        .catch((err) => console.error('Snooze failed:', err)),
+    );
+  } else {
+    notification.close();
+    event.waitUntil(
+      sw.clients.matchAll({ type: 'window' }).then((clients) => {
+        if (clients.length > 0) {
+          clients[0].focus();
+        } else {
+          sw.clients.openWindow('/');
+        }
+      }),
+    );
+  }
 });

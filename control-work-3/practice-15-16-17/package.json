@@ -1,7 +1,7 @@
 {
-  "name": "practice-15-16",
+  "name": "practice-15-16-17",
   "version": "1.0.0",
-  "description": "Практики 15-16: HTTPS + App Shell + WebSocket + Push",
+  "description": "Практики 15-16-17: HTTPS + App Shell + WebSocket + Push + Напоминания",
   "scripts": {
     "build:server": "tsc -p tsconfig.json",
     "build:client": "esbuild src/client/main.ts --bundle --outfile=public/app.js --target=es2020",

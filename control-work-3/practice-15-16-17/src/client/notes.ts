@@ -1,10 +1,13 @@
 import { loadTasks, saveTasks, generateId, escapeHtml } from './storage';
-import { emitNewTask } from './socket';
+import { emitNewTask, emitNewReminder } from './socket';
 import type { Task, TaskPayload } from './types';
 
 export function initNotes(): void {
   const form = document.getElementById('note-form') as HTMLFormElement;
   const input = document.getElementById('note-input') as HTMLInputElement;
+  const reminderForm = document.getElementById('reminder-form') as HTMLFormElement;
+  const reminderText = document.getElementById('reminder-text') as HTMLInputElement;
+  const reminderTime = document.getElementById('reminder-time') as HTMLInputElement;
   const list = document.getElementById('notes-list') as HTMLUListElement;
   const filterBtns = document.querySelectorAll<HTMLButtonElement>('.filter-btn');
   const clearBtn = document.getElementById('clear-completed-btn');
@@ -37,11 +40,19 @@ export function initNotes(): void {
         const li = document.createElement('li');
         li.className = 'task-item' + (task.completed ? ' task-item--done' : '');
         li.dataset.id = task.id;
+
+        let reminderInfo = '';
+        if (task.reminder) {
+          const date = new Date(task.reminder);
+          reminderInfo = `<span class="task-item__reminder">🔔 Напоминание: ${date.toLocaleString()}</span>`;
+        }
+
         li.innerHTML = `
           <label class="task-item__label">
             <input type="checkbox" ${task.completed ? 'checked' : ''} data-action="toggle" />
             <span class="task-item__text${task.completed ? ' task-item__text--completed' : ''}">${escapeHtml(task.text)}</span>
           </label>
+          ${reminderInfo}
           <button class="button button--danger button--small" data-action="delete">Удалить</button>
         `;
         list.appendChild(li);
@@ -56,7 +67,7 @@ export function initNotes(): void {
     }
   }
 
-  function addTask(text: string): void {
+  function addTask(text: string, reminderTimestamp: number | null = null): void {
     const trimmed = text.trim();
     if (!trimmed) return;
     const tasks = loadTasks();
@@ -65,12 +76,18 @@ export function initNotes(): void {
       text: trimmed,
       completed: false,
       createdAt: new Date().toISOString(),
+      reminder: reminderTimestamp,
     };
     tasks.unshift(newTask);
     saveTasks(tasks);
     renderTasks();
-    const payload: TaskPayload = { text: trimmed, timestamp: Date.now() };
-    emitNewTask(payload);
+
+    if (reminderTimestamp) {
+      emitNewReminder({ id: newTask.id, text: trimmed, reminderTime: reminderTimestamp });
+    } else {
+      const payload: TaskPayload = { text: trimmed, timestamp: Date.now() };
+      emitNewTask(payload);
+    }
   }
 
   form.addEventListener('submit', (e: Event) => {
@@ -78,6 +95,22 @@ export function initNotes(): void {
     addTask(input.value);
     input.value = '';
     input.focus();
+  });
+
+  reminderForm.addEventListener('submit', (e: Event) => {
+    e.preventDefault();
+    const text = reminderText.value.trim();
+    const datetime = reminderTime.value;
+    if (text && datetime) {
+      const timestamp = new Date(datetime).getTime();
+      if (timestamp > Date.now()) {
+        addTask(text, timestamp);
+        reminderText.value = '';
+        reminderTime.value = '';
+      } else {
+        alert('Дата напоминания должна быть в будущем');
+      }
+    }
   });
 
   list.addEventListener('click', (e: Event) => {

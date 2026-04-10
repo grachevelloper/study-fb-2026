@@ -1,6 +1,6 @@
 import { io, Socket } from 'socket.io-client';
 import { SERVER_URL } from './constants';
-import type { TaskPayload } from './types';
+import type { TaskPayload, ReminderPayload } from './types';
 
 let socket!: Socket;
 
@@ -14,6 +14,10 @@ export function initSocket(): void {
 
 export function emitNewTask(payload: TaskPayload): void {
   socket.emit('newTask', payload);
+}
+
+export function emitNewReminder(payload: ReminderPayload): void {
+  socket.emit('newReminder', payload);
 }
 
 function showWsNotification(message: string): void {

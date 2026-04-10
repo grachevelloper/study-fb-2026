@@ -3,11 +3,18 @@ export interface Task {
   text: string;
   completed: boolean;
   createdAt: string;
+  reminder: number | null;
 }
 
 export interface TaskPayload {
   text: string;
   timestamp: number;
+}
+
+export interface ReminderPayload {
+  id: string;
+  text: string;
+  reminderTime: number;
 }
 
 export interface VapidKeyResponse {
