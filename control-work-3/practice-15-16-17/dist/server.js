@@ -15,12 +15,11 @@ const VAPID_PUBLIC_KEY = 'BMBnFZ-9VqTRc1RKQh6RBL84ZT1vD3omsMWY76aTdwQyWfyvAOqjnD
 const VAPID_PRIVATE_KEY = 'fAPiL4arQwdp2nG9w9Sy7K-06ChrDqbc0hT_9ouo83k';
 web_push_1.default.setVapidDetails('mailto:student@example.com', VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 let subscriptions = [];
+const reminders = new Map();
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)());
 app.use(express_1.default.json());
-// Раздача статических файлов из папки public
 app.use(express_1.default.static(path_1.default.join(__dirname, '../public')));
-// Публичный VAPID-ключ для клиента (чтобы не хардкодить в app.ts)
 app.get('/vapid-public-key', (_req, res) => {
     res.json({ publicKey: VAPID_PUBLIC_KEY });
 });
@@ -36,6 +35,36 @@ app.post('/unsubscribe', (req, res) => {
     const { endpoint } = req.body;
     subscriptions = subscriptions.filter((s) => s.endpoint !== endpoint);
     res.status(200).json({ message: 'Подписка удалена' });
+});
+// Эндпоинт для откладывания напоминания на 5 минут
+app.post('/snooze', (req, res) => {
+    const reminderId = req.query.reminderId;
+    if (!reminderId || !reminders.has(reminderId)) {
+        res.status(404).json({ error: 'Reminder not found' });
+        return;
+    }
+    const reminder = reminders.get(reminderId);
+    clearTimeout(reminder.timeoutId);
+    const newDelay = 5 * 60 * 1000;
+    const newTimeoutId = setTimeout(() => {
+        const payload = JSON.stringify({
+            title: 'Напоминание отложено',
+            body: reminder.text,
+            reminderId,
+        });
+        subscriptions.forEach((sub) => {
+            web_push_1.default.sendNotification(sub, payload).catch((err) => {
+                console.error('Push error:', err);
+            });
+        });
+        reminders.delete(reminderId);
+    }, newDelay);
+    reminders.set(reminderId, {
+        timeoutId: newTimeoutId,
+        text: reminder.text,
+        reminderTime: Date.now() + newDelay,
+    });
+    res.status(200).json({ message: 'Reminder snoozed for 5 minutes' });
 });
 // ============================================================
 // HTTPS: если в корне проекта есть localhost.pem и localhost-key.pem
@@ -55,15 +84,34 @@ const io = new socket_io_1.Server(serverInstance, {
 io.on('connection', (socket) => {
     console.log('Клиент подключён:', socket.id);
     socket.on('newTask', (task) => {
-        // Рассылаем событие всем подключённым клиентам (включая отправителя)
         io.emit('taskAdded', task);
-        // Отправляем push-уведомление всем подписанным клиентам
         const payload = JSON.stringify({ title: 'Новая задача', body: task.text });
         subscriptions.forEach((sub) => {
             web_push_1.default.sendNotification(sub, payload).catch((err) => {
                 console.error('Push error:', err);
             });
         });
+    });
+    socket.on('newReminder', (reminder) => {
+        const { id, text, reminderTime } = reminder;
+        const delay = reminderTime - Date.now();
+        if (delay <= 0)
+            return;
+        const timeoutId = setTimeout(() => {
+            const payload = JSON.stringify({
+                title: '🔔 Напоминание',
+                body: text,
+                reminderId: id,
+            });
+            subscriptions.forEach((sub) => {
+                web_push_1.default.sendNotification(sub, payload).catch((err) => {
+                    console.error('Push error:', err);
+                });
+            });
+            reminders.delete(id);
+        }, delay);
+        reminders.set(id, { timeoutId, text, reminderTime });
+        console.log(`Напоминание запланировано: id=${id}, через ${Math.round(delay / 1000)}с`);
     });
     socket.on('disconnect', () => {
         console.log('Клиент отключён:', socket.id);
@@ -73,10 +121,4 @@ const PORT = 3001;
 serverInstance.listen(PORT, () => {
     const protocol = useHttps ? 'https' : 'http';
     console.log(`Сервер запущен: ${protocol}://localhost:${PORT}`);
-    if (!useHttps) {
-        console.log('Для HTTPS выполните:');
-        console.log('  mkcert -install');
-        console.log('  mkcert localhost 127.0.0.1 ::1');
-        console.log('Скопируйте localhost.pem и localhost-key.pem в корень проекта и перезапустите.');
-    }
 });

@@ -1,6 +1,6 @@
 "use strict";
 const sw = self;
-const CACHE_NAME = "notes-cache-v3";
+const CACHE_NAME = "notes-cache-v4";
 const DYNAMIC_CACHE_NAME = "dynamic-content-v1";
 const ASSETS = [
   "/",
@@ -29,7 +29,7 @@ sw.addEventListener("activate", (event) => {
 sw.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
   if (url.origin !== sw.location.origin) return;
-  if (url.pathname.startsWith("/socket.io/") || url.pathname.startsWith("/subscribe") || url.pathname.startsWith("/unsubscribe") || url.pathname.startsWith("/vapid-public-key")) {
+  if (url.pathname.startsWith("/socket.io/") || url.pathname.startsWith("/subscribe") || url.pathname.startsWith("/unsubscribe") || url.pathname.startsWith("/vapid-public-key") || url.pathname.startsWith("/snooze")) {
     return;
   }
   if (url.pathname.startsWith("/content/")) {
@@ -61,14 +61,43 @@ sw.addEventListener("fetch", (event) => {
   );
 });
 sw.addEventListener("push", (event) => {
-  let data = { title: "\u041D\u043E\u0432\u043E\u0435 \u0443\u0432\u0435\u0434\u043E\u043C\u043B\u0435\u043D\u0438\u0435", body: "" };
+  let data = {
+    title: "\u041D\u043E\u0432\u043E\u0435 \u0443\u0432\u0435\u0434\u043E\u043C\u043B\u0435\u043D\u0438\u0435",
+    body: "",
+    reminderId: null
+  };
   if (event.data) {
     data = event.data.json();
   }
   const options = {
     body: data.body,
     icon: "/assets/icon.svg",
-    badge: "/assets/icon.svg"
+    badge: "/assets/icon.svg",
+    data: { reminderId: data.reminderId ?? null }
   };
+  if (data.reminderId) {
+    options.actions = [{ action: "snooze", title: "\u041E\u0442\u043B\u043E\u0436\u0438\u0442\u044C \u043D\u0430 5 \u043C\u0438\u043D\u0443\u0442" }];
+  }
   event.waitUntil(sw.registration.showNotification(data.title, options));
+});
+sw.addEventListener("notificationclick", (event) => {
+  const notification = event.notification;
+  const action = event.action;
+  if (action === "snooze") {
+    const reminderId = notification.data.reminderId;
+    event.waitUntil(
+      fetch(`/snooze?reminderId=${reminderId}`, { method: "POST" }).then(() => notification.close()).catch((err) => console.error("Snooze failed:", err))
+    );
+  } else {
+    notification.close();
+    event.waitUntil(
+      sw.clients.matchAll({ type: "window" }).then((clients) => {
+        if (clients.length > 0) {
+          clients[0].focus();
+        } else {
+          sw.clients.openWindow("/");
+        }
+      })
+    );
+  }
 });

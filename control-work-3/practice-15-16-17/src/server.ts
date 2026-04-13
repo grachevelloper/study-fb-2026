@@ -63,6 +63,9 @@ app.post('/subscribe', (req, res) => {
   const exists = subscriptions.some((s) => s.endpoint === subscription.endpoint);
   if (!exists) {
     subscriptions.push(subscription);
+    console.log(`[subscribe] Новая подписка добавлена. Всего подписок: ${subscriptions.length}`);
+  } else {
+    console.log(`[subscribe] Подписка уже существует. Всего подписок: ${subscriptions.length}`);
   }
   res.status(201).json({ message: 'Подписка сохранена' });
 });
@@ -146,24 +149,34 @@ io.on('connection', (socket) => {
   socket.on('newReminder', (reminder: NewReminderPayload) => {
     const { id, text, reminderTime } = reminder;
     const delay = reminderTime - Date.now();
-    if (delay <= 0) return;
+    console.log(`[newReminder] id=${id}, delay=${Math.round(delay / 1000)}с, подписок=${subscriptions.length}`);
+    if (delay <= 0) {
+      console.log(`[newReminder] Пропущено — время уже прошло`);
+      return;
+    }
+
+    if (reminders.has(id)) {
+      console.log(`[newReminder] Уже запланировано, пропускаем: id=${id}`);
+      return;
+    }
 
     const timeoutId = setTimeout(() => {
+      console.log(`[push] Отправляем push для id=${id}, подписок=${subscriptions.length}`);
       const payload = JSON.stringify({
         title: '🔔 Напоминание',
         body: text,
         reminderId: id,
       });
-      subscriptions.forEach((sub) => {
-        webpush.sendNotification(sub, payload).catch((err) => {
-          console.error('Push error:', err);
-        });
+      subscriptions.forEach((sub, i) => {
+        webpush.sendNotification(sub, payload)
+          .then(() => console.log(`[push] Успешно отправлено подписчику #${i}`))
+          .catch((err: unknown) => console.error(`[push] Ошибка подписчику #${i}:`, err));
       });
       reminders.delete(id);
     }, delay);
 
     reminders.set(id, { timeoutId, text, reminderTime });
-    console.log(`Напоминание запланировано: id=${id}, через ${Math.round(delay / 1000)}с`);
+    console.log(`[newReminder] Запланировано: id=${id}, через ${Math.round(delay / 1000)}с`);
   });
 
   socket.on('disconnect', () => {

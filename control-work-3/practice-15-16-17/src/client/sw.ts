@@ -90,6 +90,7 @@ sw.addEventListener('fetch', (event) => {
 });
 
 sw.addEventListener('push', (event) => {
+  console.log('[sw] push event получен');
   let data: { title: string; body: string; reminderId?: string | null } = {
     title: 'Новое уведомление',
     body: '',
@@ -97,6 +98,9 @@ sw.addEventListener('push', (event) => {
   };
   if (event.data) {
     data = event.data.json() as typeof data;
+    console.log('[sw] push data:', JSON.stringify(data));
+  } else {
+    console.log('[sw] push event без данных');
   }
   const options: NotificationOptions & { actions?: { action: string; title: string }[] } = {
     body: data.body,
@@ -109,7 +113,12 @@ sw.addEventListener('push', (event) => {
     options.actions = [{ action: 'snooze', title: 'Отложить на 5 минут' }];
   }
 
-  event.waitUntil(sw.registration.showNotification(data.title, options));
+  console.log('[sw] showNotification:', data.title, options.body);
+  event.waitUntil(
+    sw.registration.showNotification(data.title, options)
+      .then(() => console.log('[sw] showNotification успешно'))
+      .catch((err) => console.error('[sw] showNotification ошибка:', err))
+  );
 });
 
 sw.addEventListener('notificationclick', (event) => {

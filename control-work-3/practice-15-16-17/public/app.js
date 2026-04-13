@@ -7,7 +7,7 @@
   };
 
   // src/client/constants.ts
-  var STORAGE_KEY = "practice_15_16_todos_v1";
+  var STORAGE_KEY = "practice_15_16_17_todos_v1";
   var SERVER_URL = `${window.location.protocol}//localhost:3001`;
 
   // src/client/push.ts
@@ -105,8 +105,17 @@
         if (enableBtn && disableBtn) {
           const existingSub = await reg.pushManager.getSubscription();
           if (existingSub) {
+            console.log("[pwa] \u041D\u0430\u0439\u0434\u0435\u043D\u0430 \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u0443\u044E\u0449\u0430\u044F \u043F\u043E\u0434\u043F\u0438\u0441\u043A\u0430, \u043F\u0435\u0440\u0435\u043E\u0442\u043F\u0440\u0430\u0432\u043B\u044F\u0435\u043C \u043D\u0430 \u0441\u0435\u0440\u0432\u0435\u0440");
+            const res = await fetch(`${SERVER_URL}/subscribe`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(existingSub)
+            });
+            console.log("[pwa] /subscribe \u043E\u0442\u0432\u0435\u0442:", res.status);
             enableBtn.style.display = "none";
             disableBtn.style.display = "inline-block";
+          } else {
+            console.log('[pwa] \u041F\u043E\u0434\u043F\u0438\u0441\u043A\u0430 \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D\u0430 \u2014 \u043D\u0443\u0436\u043D\u043E \u043D\u0430\u0436\u0430\u0442\u044C "\u0412\u043A\u043B\u044E\u0447\u0438\u0442\u044C \u0443\u0432\u0435\u0434\u043E\u043C\u043B\u0435\u043D\u0438\u044F"');
           }
           enableBtn.addEventListener("click", async () => {
             if (Notification.permission === "denied") {
@@ -3549,6 +3558,9 @@
   function emitNewTask(payload) {
     socket.emit("newTask", payload);
   }
+  function emitNewReminder(payload) {
+    socket.emit("newReminder", payload);
+  }
   function showWsNotification(message) {
     const el = document.createElement("div");
     el.className = "ws-notification";
@@ -3583,6 +3595,9 @@
   function initNotes() {
     const form = document.getElementById("note-form");
     const input = document.getElementById("note-input");
+    const reminderForm = document.getElementById("reminder-form");
+    const reminderText = document.getElementById("reminder-text");
+    const reminderTime = document.getElementById("reminder-time");
     const list = document.getElementById("notes-list");
     const filterBtns = document.querySelectorAll(".filter-btn");
     const clearBtn = document.getElementById("clear-completed-btn");
@@ -3606,11 +3621,17 @@
           const li = document.createElement("li");
           li.className = "task-item" + (task.completed ? " task-item--done" : "");
           li.dataset.id = task.id;
+          let reminderInfo = "";
+          if (task.reminder) {
+            const date = new Date(task.reminder);
+            reminderInfo = `<span class="task-item__reminder">\u{1F514} \u041D\u0430\u043F\u043E\u043C\u0438\u043D\u0430\u043D\u0438\u0435: ${date.toLocaleString()}</span>`;
+          }
           li.innerHTML = `
           <label class="task-item__label">
             <input type="checkbox" ${task.completed ? "checked" : ""} data-action="toggle" />
             <span class="task-item__text${task.completed ? " task-item__text--completed" : ""}">${escapeHtml(task.text)}</span>
           </label>
+          ${reminderInfo}
           <button class="button button--danger button--small" data-action="delete">\u0423\u0434\u0430\u043B\u0438\u0442\u044C</button>
         `;
           list.appendChild(li);
@@ -3623,7 +3644,7 @@
         statsEl.textContent = `\u0412\u0441\u0435\u0433\u043E: ${total} | \u0410\u043A\u0442\u0438\u0432\u043D\u044B\u0445: ${total - done} | \u0412\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u043D\u044B\u0445: ${done}`;
       }
     }
-    function addTask(text) {
+    function addTask(text, reminderTimestamp = null) {
       const trimmed = text.trim();
       if (!trimmed) return;
       const tasks = loadTasks();
@@ -3631,19 +3652,39 @@
         id: generateId(),
         text: trimmed,
         completed: false,
-        createdAt: (/* @__PURE__ */ new Date()).toISOString()
+        createdAt: (/* @__PURE__ */ new Date()).toISOString(),
+        reminder: reminderTimestamp
       };
       tasks.unshift(newTask);
       saveTasks(tasks);
       renderTasks();
-      const payload = { text: trimmed, timestamp: Date.now() };
-      emitNewTask(payload);
+      if (reminderTimestamp) {
+        emitNewReminder({ id: newTask.id, text: trimmed, reminderTime: reminderTimestamp });
+      } else {
+        const payload = { text: trimmed, timestamp: Date.now() };
+        emitNewTask(payload);
+      }
     }
     form.addEventListener("submit", (e) => {
       e.preventDefault();
       addTask(input.value);
       input.value = "";
       input.focus();
+    });
+    reminderForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const text = reminderText.value.trim();
+      const datetime = reminderTime.value;
+      if (text && datetime) {
+        const timestamp = new Date(datetime).getTime();
+        if (timestamp > Date.now()) {
+          addTask(text, timestamp);
+          reminderText.value = "";
+          reminderTime.value = "";
+        } else {
+          alert("\u0414\u0430\u0442\u0430 \u043D\u0430\u043F\u043E\u043C\u0438\u043D\u0430\u043D\u0438\u044F \u0434\u043E\u043B\u0436\u043D\u0430 \u0431\u044B\u0442\u044C \u0432 \u0431\u0443\u0434\u0443\u0449\u0435\u043C");
+        }
+      }
     });
     list.addEventListener("click", (e) => {
       const target = e.target;
@@ -3675,6 +3716,14 @@
     clearBtn?.addEventListener("click", () => {
       saveTasks(loadTasks().filter((t) => !t.completed));
       renderTasks();
+    });
+    const pendingReminders = loadTasks().filter(
+      (t) => t.reminder !== null && t.reminder !== void 0 && t.reminder > Date.now()
+    );
+    console.log(`[notes] \u041F\u0435\u0440\u0435\u043E\u0442\u043F\u0440\u0430\u0432\u043A\u0430 \u043D\u0430\u043F\u043E\u043C\u0438\u043D\u0430\u043D\u0438\u0439 \u043F\u0440\u0438 \u0437\u0430\u0433\u0440\u0443\u0437\u043A\u0435: ${pendingReminders.length} \u0448\u0442.`);
+    pendingReminders.forEach((t) => {
+      console.log(`[notes] emitNewReminder: id=${t.id}, text="${t.text}", reminderTime=${new Date(t.reminder).toLocaleString()}`);
+      emitNewReminder({ id: t.id, text: t.text, reminderTime: t.reminder });
     });
     renderTasks();
   }

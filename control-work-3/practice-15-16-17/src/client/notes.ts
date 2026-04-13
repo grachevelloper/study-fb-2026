@@ -148,5 +148,14 @@ export function initNotes(): void {
     renderTasks();
   });
 
+  const pendingReminders = loadTasks().filter(
+    (t) => t.reminder !== null && t.reminder !== undefined && t.reminder > Date.now(),
+  );
+  console.log(`[notes] Переотправка напоминаний при загрузке: ${pendingReminders.length} шт.`);
+  pendingReminders.forEach((t) => {
+    console.log(`[notes] emitNewReminder: id=${t.id}, text="${t.text}", reminderTime=${new Date(t.reminder as number).toLocaleString()}`);
+    emitNewReminder({ id: t.id, text: t.text, reminderTime: t.reminder as number });
+  });
+
   renderTasks();
 }

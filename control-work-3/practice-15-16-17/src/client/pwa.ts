@@ -1,4 +1,5 @@
 import { fetchVapidKey, subscribeToPush, unsubscribeFromPush } from './push';
+import { SERVER_URL } from './constants';
 import type { BeforeInstallPromptEvent } from './types';
 
 const networkStatus = document.getElementById('networkStatus') as HTMLElement;
@@ -53,8 +54,17 @@ if ('serviceWorker' in navigator) {
       if (enableBtn && disableBtn) {
         const existingSub = await reg.pushManager.getSubscription();
         if (existingSub) {
+          console.log('[pwa] Найдена существующая подписка, переотправляем на сервер');
+          const res = await fetch(`${SERVER_URL}/subscribe`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(existingSub),
+          });
+          console.log('[pwa] /subscribe ответ:', res.status);
           enableBtn.style.display = 'none';
           disableBtn.style.display = 'inline-block';
+        } else {
+          console.log('[pwa] Подписка не найдена — нужно нажать "Включить уведомления"');
         }
 
         enableBtn.addEventListener('click', async () => {
