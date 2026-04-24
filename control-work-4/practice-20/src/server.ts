@@ -4,7 +4,7 @@ import { connectDb } from './db.js';
 import usersRouter from './routes/users.js';
 
 const app = express();
-const PORT = Number(process.env.PORT ?? 3000);
+const PORT = Number(process.env.PORT ?? 3010);
 
 app.use(express.json());
 app.use('/api/users', usersRouter);
