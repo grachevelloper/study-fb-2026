@@ -6,7 +6,9 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "tsx src/index.ts"
+    "dev": "tsx src/index.ts",
+    "redis:up": "docker compose up -d redis",
+    "redis:down": "docker compose down"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",

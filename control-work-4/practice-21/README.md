@@ -15,13 +15,25 @@
 
 ## Запуск
 
-Запустить Redis:
+Создать `.env` на основе `.env.example`:
 
 ```bash
-docker run -d --name redis-cache -p 6379:6379 redis
+cp .env.example .env
 ```
 
-Создать `.env` (см. `.env.example`):
+Запустить Redis через Docker Compose:
+
+```bash
+npm run redis:up
+```
+
+Или вручную:
+
+```bash
+docker compose up -d redis
+```
+
+Основные переменные окружения:
 
 ```env
 PORT=3000
@@ -35,6 +47,26 @@ REDIS_URL=redis://127.0.0.1:6379
 ```bash
 npm install
 npm run dev
+```
+
+Для production-сборки:
+
+```bash
+npm run build
+npm start
+```
+
+## Структура
+
+```text
+src/
+  auth.routes.ts        # регистрация, вход, refresh/logout/me
+  users.routes.ts       # CRUD пользователей + кэш users:*
+  products.routes.ts    # CRUD товаров + кэш products:*
+  routes.ts             # подключение route-модулей
+  cache.ts              # Redis client, saveToCache, invalidation
+  middlewares/          # auth, roles, cacheMiddleware, respondWithCache
+  utils/                # утилиты пользователей, товаров, токенов и request helpers
 ```
 
 ## Тестирование кэша

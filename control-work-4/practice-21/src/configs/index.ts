@@ -8,5 +8,5 @@ export const REFRESH_TOKEN_EXPIRES_IN = process.env.REFRESH_TOKEN_EXPIRES_IN || 
 export const BCRYPT_SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS || '10');
 export const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
 
-export const USERS_CACHE_TTL = 60;    // 1 минута
-export const PRODUCTS_CACHE_TTL = 600; // 10 минут
+export const USERS_CACHE_TTL_IN_S = 60;    
+export const PRODUCTS_CACHE_TTL_IN_S = 600;

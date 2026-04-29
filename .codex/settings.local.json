@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh repo:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(python3 -c \"from PIL import Image; print\\(''PIL available''\\)\")",
+      "Bash(python3 -c \"import struct, zlib; print\\(''struct/zlib available''\\)\")",
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(npm run:*)",
+      "Bash(echo \"TYPECHECK EXIT:$?\")",
+      "Bash(echo \"SERVER EXIT:$?\")",
+      "Bash(echo \"BUILD EXIT:$?\")"
+    ]
+  }
+}
