@@ -5,8 +5,8 @@ services:
     environment:
       PORT: 3000
       INSTANCE_NAME: backend-1
-    ports:
-      - "3000:3000"
+    networks:
+      - app-network
 
   backend2:
     build: .
@@ -14,8 +14,8 @@ services:
     environment:
       PORT: 3000
       INSTANCE_NAME: backend-2
-    ports:
-      - "3001:3000"
+    networks:
+      - app-network
 
   backend3:
     build: .
@@ -23,22 +23,22 @@ services:
     environment:
       PORT: 3000
       INSTANCE_NAME: backend-3-backup
-    ports:
-      - "3002:3000"
+    networks:
+      - app-network
 
   nginx:
     image: nginx:1.27-alpine
     container_name: practice-22-nginx
-    profiles:
-      - nginx
     depends_on:
       - backend1
       - backend2
       - backend3
     ports:
-      - "8080:80"
+      - "80:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - app-network
 
   haproxy:
     image: haproxy:3.0-alpine
@@ -54,3 +54,9 @@ services:
       - "8404:8404"
     volumes:
       - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

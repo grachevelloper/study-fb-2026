@@ -1,13 +1,15 @@
-# Практика 22: Балансировка нагрузки в веб-приложениях
+# Практики 22-23: балансировка нагрузки и Docker
 
 ## Описание
 
-Практика демонстрирует балансировку HTTP-запросов между несколькими экземплярами backend-приложения.
+Практика демонстрирует балансировку HTTP-запросов между несколькими экземплярами backend-приложения и запуск всего стека через Docker Compose.
 
 Реализовано:
 
 - три backend-сервера на Express;
 - Nginx как основной балансировщик нагрузки;
+- запуск всех компонентов командой `docker compose up --build`;
+- отдельная Docker-сеть для взаимодействия контейнеров по именам сервисов;
 - настройки отказоустойчивости `max_fails` и `fail_timeout`;
 - резервный backend-сервер `backend3`;
 - альтернативная балансировка через HAProxy;
@@ -19,7 +21,7 @@
 src/server.ts              # backend-сервер с /, /api/info и /health
 nginx/nginx.conf           # upstream backend + max_fails/fail_timeout
 haproxy/haproxy.cfg        # frontend/backend + health checks
-docker-compose.yml         # backend1, backend2, backend3, nginx, haproxy
+docker-compose.yml         # backend1, backend2, backend3, nginx, haproxy, app-network
 k8s/backend-service.yml    # пример Service для Kubernetes
 ```
 
@@ -45,15 +47,15 @@ curl http://localhost:3002
 ## Запуск с Nginx
 
 ```bash
-npm run compose:nginx
+docker compose up --build
 ```
 
-Nginx будет доступен на порту `8080`.
+Nginx будет доступен на стандартном HTTP-порту `80`.
 
 Проверка распределения запросов:
 
 ```bash
-for i in {1..6}; do curl -s http://localhost:8080 | jq; done
+for i in {1..6}; do curl -s http://localhost/ | jq; done
 ```
 
 В ответах поле `instance` будет чередоваться между `backend-1` и `backend-2`.
@@ -77,7 +79,7 @@ upstream backend {
 
 ```bash
 docker stop practice-22-backend-1
-for i in {1..6}; do curl -s http://localhost:8080 | jq; done
+for i in {1..6}; do curl -s http://localhost/ | jq; done
 ```
 
 После остановки `backend-1` запросы продолжит обрабатывать `backend-2`. Если остановить оба основных сервера, Nginx переключится на `backend-3-backup`.

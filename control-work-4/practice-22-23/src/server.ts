@@ -15,6 +15,7 @@ app.get("/", (_req, res) => {
 
   res.json({
     message: "Response from backend server",
+    server: instanceName,
     instance: instanceName,
     port,
     hostname: os.hostname(),

@@ -1,7 +1,7 @@
 {
-  "name": "practice-22",
+  "name": "practice-22-23",
   "version": "1.0.0",
-  "description": "Практика 22: Балансировка нагрузки в веб-приложениях",
+  "description": "Практики 22-23: балансировка нагрузки и контейнеризация с Docker Compose",
   "type": "module",
   "scripts": {
     "build": "tsc",
@@ -10,7 +10,7 @@
     "dev:backend1": "PORT=3000 INSTANCE_NAME=backend-1 tsx src/server.ts",
     "dev:backend2": "PORT=3001 INSTANCE_NAME=backend-2 tsx src/server.ts",
     "dev:backend3": "PORT=3002 INSTANCE_NAME=backend-3 tsx src/server.ts",
-    "compose:nginx": "docker compose --profile nginx up --build",
+    "compose:nginx": "docker compose up --build",
     "compose:haproxy": "docker compose --profile haproxy up --build",
     "compose:down": "docker compose down"
   },
